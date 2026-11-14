@@ -50,3 +50,67 @@ async def get_repository(url: str):
             status_code=502,
             detail="Unable to connect to GitHub"
         )
+
+@router.get("/files")
+async def get_repo_files(url:str):
+    parts=url.rstrip("/").split("/")
+    
+    if len(parts)<2:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub repository URL"
+        )
+        
+    owner=parts[-2]
+    repo=parts[-1].removesuffix(".git")
+    
+    async with httpx.AsyncClient() as client:
+        
+        #get repository default branch
+        repo_response=await client.get(
+            f"https://api.github.com/repos/{owner}/{repo}"
+        )
+        
+        if repo_response.status_code==404:
+            raise HTTPException(
+                status_code=404,
+                detail="Repository not found"
+            )
+        if repo_response.status_code!=200:
+            raise HTTPException(
+                status_code=502,
+                detail="GitHub API request failed"
+            )
+        default_branch=repo_response.json()[
+            "default_branch"
+        ]
+        
+        
+        #fetch complete file tree
+        tree_response=await client.get(
+            f"https://api.github.com/repos/{owner}/{repo}/git/trees/{default_branch}",
+            params={"recursive":"1"}
+        )
+        
+        if tree_response.status_code!=200:
+            raise HTTPException(
+                status_code=502,
+                detail="Unable to fetch the repository files"
+            )
+        tree_data=tree_response.json()
+        files=[
+            {
+                "path": item["path"],
+                "type": item["type"]
+            }
+            for item in tree_data.get("tree",[])
+        ]
+        return {
+        "repository": f"{owner}/{repo}",
+        "default_branch": default_branch,
+        "total_items": len(files),
+        "truncated": tree_data.get("truncated", False),
+        "files": files
+    }
+        
+       
