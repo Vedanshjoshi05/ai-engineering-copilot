@@ -1,6 +1,7 @@
 import httpx
 import base64
 from fastapi import APIRouter, HTTPException
+from app.services.repository_service import collect_source_files
 
 router = APIRouter(prefix="/github", tags=["GitHub"])
 
@@ -154,6 +155,22 @@ async def get_file_content(url:str,path:str):
     except UnicodeDecodeError:
         raise HTTPException(405,"File is not valid UTF-8 text")
 
+@router.get("/sourceFiles")
+async def get_source_files(url:str):
+    parts=url.rstrip("/").split("/")
+    if len(parts)<2:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub repository URL"
+        )
+    owner=parts[-2]
+    repo=parts[-1].removesuffix(".git")
+    try:
+        return await collect_source_files(owner,repo)
+    except httpx.RequestError:
+        raise HTTPException(502,"unable to retrieve source files from github")
+    except httpx.RequestError:
+        raise HTTPException(502,"Unable to connect to github")
         
         
        
