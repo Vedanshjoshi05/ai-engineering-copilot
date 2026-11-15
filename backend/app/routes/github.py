@@ -3,7 +3,7 @@ import base64
 from fastapi import APIRouter, HTTPException
 from app.services.repository_service import collect_source_files
 from app.services.repository_service import fetch_source_contents
-
+from app.services.chunking_service import chunk_repo
 router = APIRouter(prefix="/github", tags=["GitHub"])
 
 @router.get("/repository")
@@ -213,4 +213,26 @@ async def get_source_code(url: str):
         raise HTTPException(
             status_code=502,
             detail="Unable to retrieve source files from GitHub"
+        )
+@router.get("/chunks")
+async def get_chunks(url:str):
+    parts=url.rstrip("/").split("/")
+    if len(parts)<2:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub repository URL"
+        )
+    owner=parts[-2]
+    repo=parts[-1].removesuffix(".git")
+    try:
+        return await chunk_repo(owner,repo)
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"GitHub API error: {e.response.status_code}"
+        )
+    except (httpx.RequestError, UnicodeDecodeError, KeyError) as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Unable to retrieve source files from GitHub: {str(e)}"
         )
