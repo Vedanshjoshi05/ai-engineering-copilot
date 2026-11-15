@@ -166,11 +166,24 @@ async def get_source_files(url:str):
     owner=parts[-2]
     repo=parts[-1].removesuffix(".git")
     try:
-        return await collect_source_files(owner,repo)
-    except httpx.RequestError:
-        raise HTTPException(502,"unable to retrieve source files from github")
-    except httpx.RequestError:
-        raise HTTPException(502,"Unable to connect to github")
+        result = await collect_source_files(owner, repo)
+        return result
+
+    except httpx.HTTPStatusError as e:
+        print("GitHub status:", e.response.status_code)
+        print("GitHub response:", e.response.text)
+        
+        raise HTTPException(
+            status_code=502,
+            detail=f"GitHub API error: {e.response.status_code}"
+        )
+    except httpx.RequestError as e:
+        print("Connection error:", str(e))
+
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to connect to GitHub"
+        )
         
         
        
