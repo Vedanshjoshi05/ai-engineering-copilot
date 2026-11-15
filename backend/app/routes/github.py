@@ -1,4 +1,5 @@
 import httpx
+import base64
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/github", tags=["GitHub"])
@@ -112,5 +113,47 @@ async def get_repo_files(url:str):
         "truncated": tree_data.get("truncated", False),
         "files": files
     }
+
+@router.get("/fileContent")
+async def get_file_content(url:str,path:str):
+    parts=url.rstrip("/").split("/")
+    if len(parts)<2:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub repository URL"
+        )
+    owner=parts[-2]
+    repo=parts[-1].removesuffix(".git")
+    
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+    try:
+        async with httpx.AsyncClient() as client:
+            response=await client.get(api_url)
+            
+        if response.status_code==404:
+            raise HTTPException(404,"File not found")
+        if response.status_code!=200:
+            raise HTTPException(502,"GitHub API request failed")
+        data=response.json()
+        
+        if data.get("type")!="file":
+            raise HTTPException(400,"Path does not point to a file")
+        if data.get("size",0) >1_000_000:
+            raise HTTPException(413,"File size exceeds 1MB")
+        content=base64.b64decode(data["content"]).decode("utf-8")
+        
+        return {
+            "repository":f"{owner}/{repo}",
+            "file_path":data["path"],
+            "size":data["size"],
+            "content":content
+            
+        }
+    except httpx.RequestError:
+        raise HTTPException(502,"unable to connect the github")
+    except UnicodeDecodeError:
+        raise HTTPException(405,"File is not valid UTF-8 text")
+
+        
         
        
