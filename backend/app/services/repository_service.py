@@ -11,7 +11,13 @@ SUPPORTED_EXTENSIONS = {
 
 IGNORED_DIRECTORIES = {
     "node_modules", "venv", "__pycache__", ".venv",
-    "dist", "build", ".git", "vendor"
+    "dist", "build", ".git", "vendor",
+    ".github", "docs"
+}
+CODE_EXTENSIONS = {
+    ".py", ".js", ".jsx", ".ts", ".tsx",
+    ".java", ".cpp", ".c", ".h", ".hpp",
+    ".go", ".rs", ".php", ".rb"
 }
 
 
@@ -47,7 +53,7 @@ async def collect_source_files(owner: str, repo: str):
             if any(part in IGNORED_DIRECTORIES for part in parts):
                 continue
 
-            if not any(path.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS):
+            if not any(path.lower().endswith(ext) for ext in CODE_EXTENSIONS):
                 continue
 
             if item.get("size", 0) > 1_000_000:
