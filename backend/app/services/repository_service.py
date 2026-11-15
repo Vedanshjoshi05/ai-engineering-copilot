@@ -1,5 +1,7 @@
 
 import httpx
+import base64
+from urllib.parse import quote
 
 SUPPORTED_EXTENSIONS = {
     ".py", ".json", ".txt", ".md", ".html", ".css",
@@ -17,7 +19,6 @@ async def collect_source_files(owner: str, repo: str):
 
     async with httpx.AsyncClient(timeout=30) as client:
 
-        # Get repository information
         repo_response = await client.get(
             f"https://api.github.com/repos/{owner}/{repo}"
         )
@@ -25,7 +26,6 @@ async def collect_source_files(owner: str, repo: str):
 
         branch = repo_response.json()["default_branch"]
 
-        # Get repository file tree
         tree_response = await client.get(
             f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}",
             params={"recursive": "1"}
@@ -44,15 +44,12 @@ async def collect_source_files(owner: str, repo: str):
             path = item["path"]
             parts = path.split("/")
 
-            # Ignore unnecessary directories
             if any(part in IGNORED_DIRECTORIES for part in parts):
                 continue
 
-            # Collect only supported file extensions
             if not any(path.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS):
                 continue
 
-            # Skip files larger than 1 MB
             if item.get("size", 0) > 1_000_000:
                 continue
 
@@ -61,7 +58,6 @@ async def collect_source_files(owner: str, repo: str):
                 "size": item.get("size", 0)
             })
 
-            # Limit collection to 20 files for now
             if len(source_files) >= 20:
                 break
 
@@ -71,3 +67,55 @@ async def collect_source_files(owner: str, repo: str):
             "files": source_files,
             "total_files": len(source_files)
         }
+
+
+async def fetch_source_contents(owner: str, repo: str):
+
+    result = await collect_source_files(owner, repo)
+
+    branch = result["branch"]
+    files = result["files"][:5]
+
+    source_contents = []
+
+    async with httpx.AsyncClient(timeout=30) as client:
+
+        for file in files:
+
+            path = file["path"]
+
+            api_url = (
+                f"https://api.github.com/repos/{owner}/{repo}/contents/"
+                f"{quote(path, safe='/')}"
+            )
+
+            response = await client.get(
+                api_url,
+                params={"ref": branch}
+            )
+            response.raise_for_status()
+
+            data = response.json()
+
+            if data.get("type") != "file":
+                continue
+
+            if data.get("encoding") != "base64":
+                continue
+
+            content = base64.b64decode(
+                data["content"]
+            ).decode("utf-8")
+
+            source_contents.append({
+                "path": path,
+                "size": file["size"],
+                "content": content
+            })
+
+    return {
+        "repository": result["repository"],
+        "branch": branch,
+        "total_files": len(source_contents),
+        "files": source_contents
+    }
