@@ -68,7 +68,7 @@ async def ask_repository(
         owner=owner,
         repo=repo,
         query=question,
-        limit=5
+        limit=10
     )
 
     if not search_results["results"]:

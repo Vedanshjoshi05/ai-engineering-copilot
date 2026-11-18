@@ -2,23 +2,83 @@
 import httpx
 import base64
 from urllib.parse import quote
+from pathlib import PurePosixPath
 
-SUPPORTED_EXTENSIONS = {
-    ".py", ".json", ".txt", ".md", ".html", ".css",
-    ".js", ".jsx", ".ts", ".tsx", ".php", ".rb",
-    ".go", ".rs", ".java", ".cpp", ".c", ".h", ".hpp"
-}
 
-IGNORED_DIRECTORIES = {
-    "node_modules", "venv", "__pycache__", ".venv",
-    "dist", "build", ".git", "vendor",
-    ".github", "docs"
-}
 CODE_EXTENSIONS = {
     ".py", ".js", ".jsx", ".ts", ".tsx",
     ".java", ".cpp", ".c", ".h", ".hpp",
     ".go", ".rs", ".php", ".rb"
 }
+
+
+IGNORED_DIRECTORIES = {
+    "node_modules", "venv", "__pycache__", ".venv",
+    "dist", "build", ".git", "vendor",
+    ".github", "docs", "coverage"
+}
+
+
+# Files that usually contain important implementation logic
+PRIORITY_FILENAMES = {
+    "api.py",
+    "sessions.py",
+    "models.py",
+    "adapters.py",
+    "auth.py",
+    "views.py",
+    "controllers.py",
+    "routes.py",
+    "service.py",
+    "services.py",
+    "main.py",
+    "app.py",
+    "index.js",
+    "server.js"
+}
+
+
+def get_file_priority(path: str):
+    """
+    Assign higher priority to files likely to contain
+    actual application implementation.
+    """
+
+    file_path = PurePosixPath(path)
+    filename = file_path.name.lower()
+    directories = {part.lower() for part in file_path.parts[:-1]}
+
+    score = 0
+
+    # Prioritize common implementation filenames
+    if filename in PRIORITY_FILENAMES:
+        score += 10
+
+    # Prefer source files inside application directories
+    if directories.intersection({
+        "src", "app", "lib", "core", "services",
+        "controllers", "api"
+    }):
+        score += 5
+
+    # Reduce priority for tests and examples
+    if directories.intersection({
+        "tests", "test", "examples", "samples",
+        "benchmarks"
+    }):
+        score -= 10
+
+    # Reduce priority for metadata and type definition files
+    if filename.startswith("_"):
+        score -= 5
+
+    if "test" in filename:
+        score -= 10
+
+    if filename.endswith((".pyi", ".d.ts")):
+        score -= 5
+
+    return score
 
 
 async def collect_source_files(owner: str, repo: str):
@@ -50,10 +110,16 @@ async def collect_source_files(owner: str, repo: str):
             path = item["path"]
             parts = path.split("/")
 
-            if any(part in IGNORED_DIRECTORIES for part in parts):
+            if any(
+                part.lower() in IGNORED_DIRECTORIES
+                for part in parts
+            ):
                 continue
 
-            if not any(path.lower().endswith(ext) for ext in CODE_EXTENSIONS):
+            if not any(
+                path.lower().endswith(ext)
+                for ext in CODE_EXTENSIONS
+            ):
                 continue
 
             if item.get("size", 0) > 1_000_000:
@@ -61,16 +127,20 @@ async def collect_source_files(owner: str, repo: str):
 
             source_files.append({
                 "path": path,
-                "size": item.get("size", 0)
+                "size": item.get("size", 0),
+                "priority": get_file_priority(path)
             })
 
-            if len(source_files) >= 20:
-                break
+        # Sort by priority, highest first
+        source_files.sort(
+            key=lambda file: file["priority"],
+            reverse=True
+        )
 
         return {
             "repository": f"{owner}/{repo}",
             "branch": branch,
-            "files": source_files,
+            "files": source_files[:20],
             "total_files": len(source_files)
         }
 
@@ -80,6 +150,8 @@ async def fetch_source_contents(owner: str, repo: str):
     result = await collect_source_files(owner, repo)
 
     branch = result["branch"]
+
+    # Fetch the five highest-priority files
     files = result["files"][:5]
 
     source_contents = []
