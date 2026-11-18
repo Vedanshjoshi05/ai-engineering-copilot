@@ -57,3 +57,35 @@ async def index_repository(owner:str,repo:str):
         "total_chunks":len(documents),
         "message":"Repository indexed successfully"
     }
+
+
+def search_repository(
+    owner: str,
+    repo: str,
+    query: str,
+    limit: int = 5
+):
+    repository_name = f"{owner}/{repo}"
+
+    results = collection.query(
+        query_texts=[query],
+        n_results=limit,
+        where={"repository": repository_name}
+    )
+
+    matches = []
+
+    if results["documents"]:
+        for i, document in enumerate(results["documents"][0]):
+            matches.append({
+                "content": document,
+                "metadata": results["metadatas"][0][i],
+                "distance": results["distances"][0][i]
+            })
+
+    return {
+        "repository": repository_name,
+        "query": query,
+        "total_results": len(matches),
+        "results": matches
+    }

@@ -5,6 +5,8 @@ from app.services.repository_service import collect_source_files
 from app.services.repository_service import fetch_source_contents
 from app.services.chunking_service import chunk_repo
 from app.services.vector_service import index_repository
+from app.services.vector_service import search_repository
+from urllib.parse import urlsplit
 router = APIRouter(prefix="/github", tags=["GitHub"])
 
 @router.get("/repository")
@@ -262,4 +264,33 @@ async def index_github_repo(url:str):
         raise HTTPException(
             status_code=502,
             detail=f"Indexed failed: {str(e)}"
+        )
+    
+    
+
+@router.get("/search")
+async def search_github_repository(
+    url: str,
+    query: str,
+    limit: int = 5
+):
+    parsed_url = urlsplit(url)
+    parts = parsed_url.path.strip("/").split("/")
+
+    if len(parts) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub repository URL"
+        )
+
+    owner = parts[0]
+    repo = parts[1].removesuffix(".git")
+
+    try:
+        return search_repository(owner, repo, query, limit)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Search failed: {str(e)}"
         )
