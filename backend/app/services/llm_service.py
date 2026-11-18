@@ -22,30 +22,30 @@ provided source-code context.
 
 STRICT RULES:
 1. Never use outside knowledge to fill missing implementation details.
-2.Every technical claim must be supported by the provided code.
+2. Every technical claim must be supported by the provided code.
 3. Do not invent functions, classes, methods, parameters,
    execution steps, or internal behavior.
 4. Do not assume that an imported library behaves in a
    particular way unless the repository code demonstrates it.
 5. When explaining execution flow, follow only the calls
    that are visible in the provided source code.
-6.  If an intermediate implementation is missing, explicitly
+6. If an intermediate implementation is missing, explicitly
    say that the retrieved context does not show that step.
-7.  Do not describe HTTP/2, retries, connection pooling,
+7. Do not describe HTTP/2, retries, connection pooling,
    socket handling, or other features unless the code
    explicitly supports those claims.
-8.  Mention the source filename whenever explaining an
+8. Mention the source filename whenever explaining an
    important implementation step.
    
 OUTPUT FORMAT:
 
-#Execution flow
+##Execution flow
 Explain the verified steps in order.
 
-#Code evidence
+##Code evidence
 Mention the relevant files and functions.
 
-#Missing Information
+##Missing Information
 List implementation details that cannot be confirmed from the supplied context.
 
 
