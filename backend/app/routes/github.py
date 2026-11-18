@@ -7,6 +7,7 @@ from app.services.chunking_service import chunk_repo
 from app.services.vector_service import index_repository
 from app.services.vector_service import search_repository
 from urllib.parse import urlsplit
+from app.services.llm_service import ask_repository
 router = APIRouter(prefix="/github", tags=["GitHub"])
 
 @router.get("/repository")
@@ -293,4 +294,39 @@ async def search_github_repository(
         raise HTTPException(
             status_code=500,
             detail=f"Search failed: {str(e)}"
+        )
+
+
+@router.get("/ask")
+async def ask_github_repository(
+    url: str,
+    question: str
+):
+    from urllib.parse import urlsplit
+
+    parsed_url = urlsplit(url)
+    parts = parsed_url.path.strip("/").split("/")
+
+    if len(parts) < 2 or parsed_url.netloc.lower() not in {
+        "github.com", "www.github.com"
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub repository URL"
+        )
+
+    owner = parts[0]
+    repo = parts[1].removesuffix(".git")
+
+    try:
+        return await ask_repository(
+            owner=owner,
+            repo=repo,
+            question=question
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Repository Q&A failed: {str(e)}"
         )
