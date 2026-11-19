@@ -12,6 +12,9 @@ function ConnectRepository() {
     const [error, setError] = useState('');
     const [indexing, setIndexing] = useState(false);
     const [indexResult, setIndexResult] = useState(null);
+    const [question, setQuestion] = useState('');
+    const [answer, setAnswer] = useState(null);
+    const [asking, setAsking] = useState(false);
 
     const connectRepository = async () => {
         if (!repoUrl.trim()) {
@@ -70,6 +73,40 @@ function ConnectRepository() {
             setIndexing(false);
         }
     };
+
+    const askQuestion = async () => {
+        if (!question.trim()) {
+            setError('Please enter a question.');
+            return;
+        }
+
+        setAsking(true);
+        setError('');
+        setAnswer(null);
+
+        try {
+            const response = await axios.get(
+                'http://127.0.0.1:8000/github/ask',
+                {
+                    params: {
+                        url: repoUrl.trim(),
+                        question: question.trim()
+                    }
+                }
+            );
+
+            setAnswer(response.data);
+
+        } catch (err) {
+            setError(
+                err.response?.data?.detail ||
+                'Unable to generate an answer. Please try again.'
+            );
+        } finally {
+            setAsking(false);
+        }
+    };
+
 
 
     return (
@@ -227,9 +264,79 @@ function ConnectRepository() {
                             </div>
 
                         </div>
+
                     )}
 
                 </div>
+
+                {repository && indexResult && (
+                    <div className="mt-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            Ask Nexora AI
+                        </h2>
+
+                        <p className="mt-2 text-sm text-gray-500">
+                            Ask questions about your repository.
+                        </p>
+
+                        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                            <input
+                                type="text"
+                                value={question}
+                                onChange={(e) => setQuestion(e.target.value)}
+                                placeholder="How does this repository work?"
+                                className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                            />
+
+                            <button
+                                onClick={askQuestion}
+                                disabled={asking}
+                                className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                            >
+                                {asking ? 'Thinking...' : 'Ask AI'}
+                            </button>
+                        </div>
+
+                    </div>
+                )}
+                {answer && (
+                    <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-5">
+                        <h3 className="mb-3 text-lg font-semibold text-gray-900">
+                            AI Response
+                        </h3>
+
+                        <p className="whitespace-pre-wrap text-sm leading-7 text-gray-700">
+                            {answer.answer}
+                        </p>
+
+                        {answer.sources?.length > 0 && (
+                            <div className="mt-6 border-t border-blue-100 pt-4">
+                                <h4 className="mb-3 text-sm font-semibold text-gray-900">
+                                    Source Files
+                                </h4>
+
+                                <div className="space-y-2">
+                                    {answer.sources.map((source, index) => (
+                                        <div
+                                            key={`${source.file_path}-${index}`}
+                                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-3 text-xs"
+                                        >
+                                            <span className="font-medium text-gray-700">
+                                                {source.file_path}
+                                            </span>
+
+                                            <span className="text-gray-500">
+                                                Lines {source.start_line}–{source.end_line}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
 
                 <p className="mt-6 text-center text-xs text-gray-400">
                     Currently supports public GitHub repositories.
