@@ -6,165 +6,238 @@ import { FaGithub } from 'react-icons/fa';
 import { ArrowLeft, Star, Code2, ExternalLink, Loader2 } from 'lucide-react';
 
 function ConnectRepository() {
-  const [repoUrl, setRepoUrl] = useState('');
-  const [repository, setRepository] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+    const [repoUrl, setRepoUrl] = useState('');
+    const [repository, setRepository] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [indexing, setIndexing] = useState(false);
+    const [indexResult, setIndexResult] = useState(null);
 
-  const connectRepository = async () => {
-    if (!repoUrl.trim()) {
-      setError('Please enter a GitHub repository URL.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setRepository(null);
-
-    try {
-      const response = await axios.get(
-        'http://127.0.0.1:8000/github/repository',
-        {
-          params: {
-            url: repoUrl.trim()
-          }
+    const connectRepository = async () => {
+        if (!repoUrl.trim()) {
+            setError('Please enter a GitHub repository URL.');
+            return;
         }
-      );
 
-      setRepository(response.data);
-    } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-        'Unable to connect to the repository. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+        setLoading(true);
+        setError('');
+        setRepository(null);
 
-  return (
-    <main className="min-h-screen bg-[#f5faf8] px-5 py-10">
-      <div className="mx-auto max-w-3xl">
+        try {
+            const response = await axios.get(
+                'http://127.0.0.1:8000/github/repository',
+                {
+                    params: {
+                        url: repoUrl.trim()
+                    }
+                }
+            );
 
-        <Link
-          to="/"
-          className="mb-12 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
-        >
-          <ArrowLeft size={17} />
-          Back to Home
-        </Link>
+            setRepository(response.data);
+        } catch (err) {
+            setError(
+                err.response?.data?.detail ||
+                'Unable to connect to the repository. Please try again.'
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+    const indexRepository = async () => {
+        setIndexing(true);
+        setError('');
+        setIndexResult(null);
 
-        <div className="mt-16 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-900 text-white">
-            <FaGithub size={32} />
-          </div>
+        try {
+            const response = await axios.post(
+                'http://127.0.0.1:8000/github/index',
+                null,
+                {
+                    params: {
+                        url: repoUrl.trim()
+                    }
+                }
+            );
 
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-            Connect your repository
-          </h1>
+            setIndexResult(response.data);
 
-          <p className="mt-4 text-gray-500">
-            Give Nexora access to your codebase by entering a public
-            GitHub repository URL.
-          </p>
-        </div>
+        } catch (err) {
+            setError(
+                err.response?.data?.detail ||
+                'Repository indexing failed. Please try again.'
+            );
+        } finally {
+            setIndexing(false);
+        }
+    };
 
-        <div className="mt-10 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
 
-          <label className="mb-3 block text-sm font-semibold text-gray-700">
-            GitHub Repository URL
-          </label>
+    return (
+        <main className="min-h-screen bg-[#f5faf8] px-5 py-10">
+            <div className="mx-auto max-w-3xl">
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <input
-              type="url"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') connectRepository();
-              }}
-              placeholder="https://github.com/owner/repository"
-              className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
+                <Link
+                    to="/"
+                    className="mb-12 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
+                >
+                    <ArrowLeft size={17} />
+                    Back to Home
+                </Link>
 
-            <button
-              onClick={connectRepository}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={17} className="animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                'Connect Repository'
-              )}
-            </button>
-          </div>
+                <div className="mt-16 text-center">
+                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-900 text-white">
+                        <FaGithub size={32} />
+                    </div>
 
-          {error && (
-            <p className="mt-4 text-sm text-red-600">
-              {error}
-            </p>
-          )}
+                    <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+                        Connect your repository
+                    </h1>
 
-          {repository && (
-            <div className="mt-8 rounded-2xl border border-green-200 bg-green-50/60 p-6">
-
-              <div className="mb-5 flex items-center gap-2 text-sm font-semibold text-green-700">
-                <span className="h-2 w-2 rounded-full bg-green-500" />
-                Repository connected successfully
-              </div>
-
-              <h2 className="text-2xl font-bold text-gray-900">
-                {repository.name}
-              </h2>
-
-              <p className="mt-1 text-sm text-gray-500">
-                {repository.full_name}
-              </p>
-
-              <p className="mt-4 text-sm leading-6 text-gray-600">
-                {repository.description || 'No description available.'}
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-5 text-sm text-gray-600">
-
-                <div className="flex items-center gap-2">
-                  <Code2 size={17} />
-                  {repository.language || 'Not specified'}
+                    <p className="mt-4 text-gray-500">
+                        Give Nexora access to your codebase by entering a public
+                        GitHub repository URL.
+                    </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Star size={17} />
-                  {repository.stars.toLocaleString()} stars
+                <div className="mt-10 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+
+                    <label className="mb-3 block text-sm font-semibold text-gray-700">
+                        GitHub Repository URL
+                    </label>
+
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                        <input
+                            type="url"
+                            value={repoUrl}
+                            onChange={(e) => setRepoUrl(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') connectRepository();
+                            }}
+                            placeholder="https://github.com/owner/repository"
+                            className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        />
+
+                        <button
+                            onClick={connectRepository}
+                            disabled={loading}
+                            className="flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 size={17} className="animate-spin" />
+                                    Connecting...
+                                </>
+                            ) : (
+                                'Connect Repository'
+                            )}
+                        </button>
+                    </div>
+
+                    {error && (
+                        <p className="mt-4 text-sm text-red-600">
+                            {error}
+                        </p>
+                    )}
+
+                    {repository && (
+                        <div className="mt-8 rounded-2xl border border-green-200 bg-green-50/60 p-6">
+
+                            <div className="mb-5 flex items-center gap-2 text-sm font-semibold text-green-700">
+                                <span className="h-2 w-2 rounded-full bg-green-500" />
+                                Repository connected successfully
+                            </div>
+
+                            <h2 className="text-2xl font-bold text-gray-900">
+                                {repository.name}
+                            </h2>
+
+                            <p className="mt-1 text-sm text-gray-500">
+                                {repository.full_name}
+                            </p>
+
+                            <p className="mt-4 text-sm leading-6 text-gray-600">
+                                {repository.description || 'No description available.'}
+                            </p>
+
+                            <div className="mt-6 flex flex-wrap gap-5 text-sm text-gray-600">
+
+                                <div className="flex items-center gap-2">
+                                    <Code2 size={17} />
+                                    {repository.language || 'Not specified'}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <Star size={17} />
+                                    {repository.stars.toLocaleString()} stars
+                                </div>
+
+                            </div>
+
+                            <div className="mt-6 flex flex-wrap items-center gap-4">
+
+                                <a
+                                    href={repository.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800"
+                                >
+                                    View on GitHub
+                                    <ExternalLink size={15} />
+                                </a>
+
+                                <button
+                                    onClick={indexRepository}
+                                    disabled={indexing}
+                                    className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {indexing ? 'Indexing Repository...' : 'Index Repository'}
+                                </button>
+                                {indexResult && (
+                                    <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
+
+                                        <div className="font-semibold text-green-700">
+                                            {indexResult.message}
+                                        </div>
+
+                                        <p className="mt-2 text-sm text-gray-600">
+                                            Repository: {indexResult.repository || repository.full_name}
+                                        </p>
+
+                                        <div className="mt-4 grid grid-cols-2 gap-4">
+
+                                            <div className="rounded-xl bg-white p-4">
+                                                <p className="text-sm text-gray-500">Files Processed</p>
+                                                <p className="mt-1 text-2xl font-bold text-gray-900">
+                                                    {indexResult.total_files ?? 0}
+                                                </p>
+                                            </div>
+
+                                            <div className="rounded-xl bg-white p-4">
+                                                <p className="text-sm text-gray-500">Code Chunks</p>
+                                                <p className="mt-1 text-2xl font-bold text-gray-900">
+                                                    {indexResult.total_chunks}
+                                                </p>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                )}
+
+                            </div>
+
+                        </div>
+                    )}
+
                 </div>
 
-              </div>
-
-              <a
-                href={repository.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800"
-              >
-                View on GitHub
-                <ExternalLink size={15} />
-              </a>
+                <p className="mt-6 text-center text-xs text-gray-400">
+                    Currently supports public GitHub repositories.
+                </p>
 
             </div>
-          )}
-
-        </div>
-
-        <p className="mt-6 text-center text-xs text-gray-400">
-          Currently supports public GitHub repositories.
-        </p>
-
-      </div>
-    </main>
-  );
+        </main>
+    );
 }
 
 export default ConnectRepository;
