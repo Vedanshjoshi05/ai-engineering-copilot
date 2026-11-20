@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.github import router as github_router
+from app.routes.review import router as review_router
 
 app = FastAPI(
     title="Nexora - AI Software Engineering Copilot",
@@ -24,6 +25,7 @@ app.add_middleware(
 
 # GitHub routes
 app.include_router(github_router)
+app.include_router(review_router)
 
 
 @app.get("/")
