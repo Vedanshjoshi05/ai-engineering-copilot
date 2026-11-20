@@ -5,8 +5,10 @@ from ollama import AsyncClient
 
 load_dotenv()
 
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+
 client = AsyncClient(
-    host="http://localhost:11434"
+    host=OLLAMA_HOST
 )
 
 MODEL = os.getenv("LLM_MODEL", "qwen2.5-coder:3b")
