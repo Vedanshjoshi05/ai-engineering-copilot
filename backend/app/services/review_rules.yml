@@ -1,0 +1,15 @@
+rules:
+  - id: python-silent-exception
+    languages: [python]
+    severity: WARNING
+    message: Report or handle the exception instead of silently discarding it.
+    pattern: |
+      try:
+          ...
+      except Exception:
+          pass
+  - id: python-self-comparison
+    languages: [python]
+    severity: WARNING
+    message: Check whether the comparison should use a different operand.
+    pattern: $VALUE == $VALUE

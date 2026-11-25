@@ -1,0 +1,5 @@
+tree-sitter>=0.25,<0.27
+tree-sitter-python>=0.25,<0.26
+ruff>=0.12,<1
+pylint>=4,<5
+bandit>=1.8,<2
