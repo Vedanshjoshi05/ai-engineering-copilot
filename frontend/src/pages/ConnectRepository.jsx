@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FaGithub } from 'react-icons/fa';
 import { ArrowLeft, Star, Code2, ExternalLink, Loader2 } from 'lucide-react';
+import ArchitectureAnalysis from '../components/ArchitectureAnalysis';
 
 function ConnectRepository() {
     const [repoUrl, setRepoUrl] = useState('');
@@ -268,7 +269,7 @@ function ConnectRepository() {
                     )}
 
                 </div>
-
+                                    {repository && <ArchitectureAnalysis key={repository.url} repositoryUrl={repository.url} />}
                 {repository && indexResult && (
                     <div className="mt-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
 

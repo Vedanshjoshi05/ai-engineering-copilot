@@ -1,8 +1,8 @@
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.github import router as github_router
+from app.architecture import router as architecture_router
 
 app = FastAPI(
     title="Nexora - AI Software Engineering Copilot",
@@ -24,6 +24,9 @@ app.add_middleware(
 
 # GitHub routes
 app.include_router(github_router)
+
+# Architecture analysis routes (Member 2)
+app.include_router(architecture_router)
 
 
 @app.get("/")
